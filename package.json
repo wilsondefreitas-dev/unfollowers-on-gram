@@ -1,11 +1,11 @@
 {
   "dependencies": {
-    "puppeteer": "^21.2.1"
+    "puppeteer": "^21.2.1",
+    "readline-sync": "^1.4.10"
   },
   "name": "unfollowers-on-gram",
   "version": "1.0.0",
   "main": "index.js",
-  "devDependencies": {},
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
