@@ -1,57 +1,54 @@
 const puppeteer = require('puppeteer');
 const readlineSync = require('readline-sync');
+const ora = require('ora');
 
-const DELAY = 2500;
-const USERNAME = readlineSync.question('Gram username: ') || '';
-const PASSWORD = readlineSync.question('Gram password: ') || '';
+/** */
+
+const DELAY = 5000; //make something better than the delay
+const TESTING_MODE = false;
+
+/** */
+
+const spinner = ora();
+
+const username = readlineSync.question('Gram username: ') || '';
+const password = readlineSync.question('Gram password: ', {hideEchoBack: true}) || '';
 
 (async () => {
-
-  console.log('Process started, it can take some minutes...');
 
   const browser = await puppeteer.launch({headless: 'old'});
   const page = await browser.newPage();
 
-  try{
+  await login(page).catch(e => {
+
+    spinner.fail(e.message);
+    process.exit(1);
+
+  });
   
-    console.log('Loggin in...');
-    await login(page);
-
-  }catch(e){
-
-    console.log(e.message);
-    process.exit();
-
-  }
-  
-  console.log('Getting followers...');
   const followers = await getUsers(page, 'followers');
-  console.log(`Followers list completed! You have ${followers.length} followers!`);
-
-  console.log('Getting users following you...');
   const following = await getUsers(page, 'following');
-  console.log(`Users following you list completed! You have ${following.length} users following you!`);
-
-  console.log('Checking who is not following you back...');
-  const notFollowingBack = getNotFollowingBack(followers, following);
-  console.log(`You have ${notFollowingBack.length} users not following you back. Here is their names:`);
   
-  printUserNotFollowingBack(notFollowingBack);
+  showUsersNotFollowingBack(followers, following);
 
-  console.log('Process finished.')
+  console.log('\nProcess finished.');
 
   await browser.close();
-  
+
 })();
 
+/** */
+
 async function login(page){
+
+  spinner.start('Loggin in...');
 
   await page.goto('https://www.instagram.com/');
 
   await page.waitForSelector('form');
   
-  await page.type('form input[name=username]', USERNAME);
-  await page.type('form input[name=password]', PASSWORD);
+  await page.type('form input[name=username]', username);
+  await page.type('form input[name=password]', password);
   await page.click('form button[type=submit]');
 
   return new Promise(async (resolve, reject) => {
@@ -59,10 +56,16 @@ async function login(page){
     page.waitForSelector('._ab2z')
       .then(async () => reject(
         {message: 'Something went wrong. Check you username and password.'}
-      ));
+      ))
+      .catch(e => e);
 
-    await page.waitForSelector('._aa56');
+    await page.waitForSelector('._aa56')
+      .catch((e) => { 
+        spinner.fail('Something went wrong. Please, try again.');
+        process.exit(1);
+      });
 
+    spinner.succeed('Loggin success.');
     resolve();
 
   });
@@ -71,13 +74,19 @@ async function login(page){
 
 async function getUsers(page, type){
 
-  await page.goto(`https://www.instagram.com/${USERNAME}/${type}/?next=%2F`);
+  spinner.start(`Getting ${type} list. It can take some minutes...`);
+
+  await page.goto(`https://www.instagram.com/${username}/${type}/?next=%2F`);
   
   await page.waitForSelector('._aano'); //pop up
 
   await showAllUsersOnPopup(page);
 
-  return await getUsersNames(page);
+  const users = await getUsersNames(page);
+
+  spinner.succeed(`The ${type} list is completed: ${users.length} users.`);
+
+  return users;
 
 }
 
@@ -93,10 +102,9 @@ async function showAllUsersOnPopup(page){
 
     await new Promise(r => setTimeout(r, DELAY));
 
-    finished = await page.evaluate(() => {
+    finished = TESTING_MODE || await page.evaluate(() => {
 
       const el = document.querySelector('._aano');
-      console.log(el.scrollHeight - el.scrollTop - el.clientHeight < 1);
       return (el.scrollHeight - el.scrollTop - el.clientHeight < 1);
 
     });
@@ -113,16 +121,30 @@ async function getUsersNames(page){
 
     const el = document.querySelector('._aano');
     const userElements = Array.from(el.childNodes[0].childNodes[0].querySelectorAll('.x1dm5mii.x16mil14.xiojian.x1yutycm.x1lliihq.x193iq5w.xh8yej3'));
-
-    return userElements.map(data => data.querySelector('.xt0psk2').innerText);
+    const usernames = userElements.map(data => data.querySelector('.xt0psk2').innerText);
+    
+    return usernames;
 
   });
 
 }
 
-function getNotFollowingBack(followers, following){
+function showUsersNotFollowingBack(followers, following){
 
-  return following.filter(data => !followers.includes(data));
+  spinner.start('Checking who is not following you back...');
+
+  const notFollowingBack = following.filter(data => !followers.includes(data));
+
+  if(notFollowingBack.length === 0){
+
+    spinner.succeed(`You have no users not following you back.`);
+
+  }else{
+    
+    spinner.warn(`You have ${notFollowingBack.length} users not following you back. Here is their names:`);
+    printUserNotFollowingBack(notFollowingBack);
+
+  }
 
 }
 
