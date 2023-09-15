@@ -1,5 +1,6 @@
 {
   "dependencies": {
+    "ora": "^5.4.1",
     "puppeteer": "^21.2.1",
     "readline-sync": "^1.4.10"
   },
@@ -7,9 +8,26 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node index.js"
   },
-  "author": "",
+  "author": "wilsondefreitas-dev",
   "license": "ISC",
-  "description": ""
+  "description": "Check who is not following you back on Instagram.",
+  "devDependencies": {},
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/wilsondefreitas-dev/unfollowers-on-gram.git"
+  },
+  "keywords": [
+    "followers",
+    "instagram",
+    "following",
+    "unfollow",
+    "gram",
+    "insta"
+  ],
+  "bugs": {
+    "url": "https://github.com/wilsondefreitas-dev/unfollowers-on-gram/issues"
+  },
+  "homepage": "https://github.com/wilsondefreitas-dev/unfollowers-on-gram#readme"
 }
